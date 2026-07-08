@@ -1,0 +1,16 @@
+# NPM / Node.js Dependencies for Solar System Explorer
+# These are automatically handled by npm when running 'npm install' on package.json.
+
+three
+@dimforge/rapier3d
+gsap
+howler
+seedrandom
+uuid
+vite
+vite-plugin-wasm
+vite-plugin-top-level-await
+tweakpane
+stats-gl
+sharp
+@gltf-transform/cli

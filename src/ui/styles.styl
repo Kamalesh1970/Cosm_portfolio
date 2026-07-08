@@ -1,0 +1,353 @@
+// styles.styl - Stylus stylesheet for UI elements
+
+// Root variables
+:root
+  --bg-color: #0a0a0a
+  --text-color: #e0e0e0
+  --accent-color: #4cc9f0
+  --highlight-color: #f72585
+  --shadow-color: rgba(0, 0, 0, 0.5)
+  --border-color: rgba(255, 255, 255, 0.1)
+  --glass-bg: rgba(0, 0, 0, 0.6)
+  --glass-border: rgba(255, 255, 255, 0.18)
+
+// Global styles
+body
+  margin: 0
+  padding: 0
+  background-color: var(--bg-color)
+  color: var(--text-color)
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif
+  overflow: hidden
+  height: 100vh
+
+// Loading screen
+#loading-screen
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+  background-color: var(--bg-color)
+  display: flex
+  flex-direction: column
+  align-items: center
+  justify-content: center
+  z-index: 2000
+  
+  .logo
+    font-size: 4rem
+    color: var(--accent-color)
+    margin-bottom: 2rem
+    text-shadow: 0 0 20px var(--accent-color)
+  
+  .progress-container
+    width: 80%
+    max-width: 400px
+    background-color: rgba(255, 255, 255, 0.1)
+    border-radius: 10px
+    overflow: hidden
+    margin-top: 2rem
+    
+    .progress-bar
+      height: 8px
+      background: linear-gradient(90deg, var(--accent-color), var(--highlight-color))
+      width: 0%
+      transition: width 0.3s ease
+  
+  .progress-text
+    margin-top: 1rem
+    font-size: 1.1rem
+    color: var(--text-color)
+  
+// HUD Styles
+.hud
+  position: absolute
+  top: 10px
+  left: 10px
+  display: flex
+  flex-direction: column
+  gap: 10px
+  z-index: 1000
+  
+  .speed
+    background: rgba(0, 0, 0, 0.5)
+    padding: 8px 12px
+    border-radius: 5px
+    font-size: 1rem
+    border: 1px solid var(--border-color)
+    
+  .compass
+    width: 60px
+    height: 60px
+    background: rgba(0, 0, 0, 0.5)
+    border-radius: 50%
+    position: relative
+    border: 2px solid var(--border-color)
+    
+    .direction-indicator
+      width: 4px
+      height: 50%
+      background: var(--accent-color)
+      position: absolute
+      top: 50%
+      left: 50%
+      transform-origin: bottom center
+      transform: translateX(-50%)
+  
+  .controls
+    background: rgba(0, 0, 0, 0.6)
+    padding: 12px
+    border-radius: 5px
+    font-size: 0.9rem
+    border: 1px solid var(--border-color)
+    
+    .control-row
+      margin: 4px 0
+      display: flex
+      justify-content: space-between
+      
+      .control-label
+        font-weight: bold
+        color: var(--accent-color)
+      
+      .control-keys
+        font-family: monospace
+
+// Content Panel Styles
+.content-panel
+  position: fixed
+  top: 0
+  left: 0
+  width: 100%
+  height: 100%
+  display: flex
+  align-items: center
+  justify-content: center
+  z-index: 1500
+  
+  .panel-content
+    width: 400px
+    max-width: 90%
+    max-height: 85vh
+    background: var(--glass-bg)
+    backdrop-filter: blur(10px)
+    border-radius: 12px
+    border: 1px solid var(--glass-border)
+    box-shadow: 0 10px 30px var(--shadow-color)
+    overflow-y: auto
+    color: var(--text-color)
+    position: relative
+    animation: slideIn 0.3s ease-out
+    
+    @keyframes slideIn
+      from
+        opacity: 0
+        transform: translateY(20px)
+      to
+        opacity: 1
+        transform: translateY(0)
+  
+  .close-button
+    position: absolute
+    top: 15px
+    right: 15px
+    background: transparent
+    border: none
+    color: var(--text-color)
+    font-size: 24px
+    width: 36px
+    height: 36px
+    border-radius: 50%
+    cursor: pointer
+    display: flex
+    align-items: center
+    justify-content: center
+    transition: all 0.2s ease
+    
+    &:hover
+      background: rgba(255, 0, 0, 0.3)
+      color: #ff6b6b
+      transform: rotate(90deg)
+  
+  .panel-header
+    display: flex
+    justify-content: space-between
+    align-items: center
+    padding: 20px
+    border-bottom: 1px solid var(--border-color)
+    
+    h2
+      margin: 0
+      color: var(--accent-color)
+      font-size: 1.8px
+      display: flex
+      align-items: center
+      gap: 10px
+      
+      .icon
+        font-size: 1.5rem
+  
+  .panel-body
+    padding: 20px
+    line-height: 1.7
+    
+    h3
+      color: var(--accent-color)
+      margin-top: 24px
+      margin-bottom: 12px
+      font-size: 1.4px
+    
+    p
+      margin-bottom: 16px
+    
+    ul
+      margin: 16px 0
+      padding-left: 20px
+      
+      li
+        margin-bottom: 8px
+    
+    .tech-tags
+      display: flex
+      flex-wrap: wrap
+      gap: 8px
+      margin: 16px 0
+      
+      .tag
+        background: rgba(255, 255, 255, 0.1)
+        color: var(--accent-color)
+        padding: 4px 10px
+        border-radius: 12px
+        font-size: 0.9px
+        border: 1px solid var(--border-color)
+    
+    .project-card
+      background: rgba(0, 0, 0, 0.3)
+      border-radius: 8px
+      padding: 16px
+      margin-bottom: 20px
+      border-left: 3px solid var(--accent-color)
+      
+      h3
+        margin-top: 0
+        color: var(--accent-color)
+    
+    .skill-bar
+      margin: 12px 0
+      
+      .label
+        display: flex
+        justify-content: space-between
+        margin-bottom: 4px
+        font-size: 0.9px
+        
+        .name
+          color: var(--text-color)
+        
+        .value
+          color: var(--accent-color)
+    
+      .bar-container
+        height: 8px
+        background: rgba(255, 255, 255, 0.1)
+        border-radius: 4px
+        overflow: hidden
+        
+        .bar-fill
+          height: 100%
+          background: linear-gradient(90deg, var(--accent-color), var(--highlight-color))
+          width: 0%
+          transition: width 1s ease
+    
+    .contact-info
+      display: grid
+      gap: 16px
+      
+      .contact-item
+        h3
+          color: var(--accent-color)
+          margin-bottom: 8px
+        
+        p
+          margin: 4px 0
+        
+        a
+          color: var(--accent-color)
+          text-decoration: none
+          
+          &:hover
+            text-decoration: underline
+    
+    .contact-form
+      .form-group
+        margin-bottom: 16px
+        
+        label
+          display: block
+          margin-bottom: 6px
+          font-weight: bold
+          color: var(--text-color)
+        
+        input,
+        textarea
+          width: 100%
+          padding: 10px
+          background: rgba(255, 255, 255, 0.1)
+          border: 1px solid var(--border-color)
+          border-radius: 4px
+          color: var(--text-color)
+          font-size: 1rem
+          
+          &:focus
+            outline: none
+            border-color: var(--accent-color)
+            box-shadow: 0 0 0 2px rgba(76, 201, 240, 0.3)
+      
+      button
+        background: linear-gradient(45deg, var(--accent-color), var(--highlight-color))
+        color: white
+        border: none
+        padding: 12px 24px
+        border-radius: 6px
+        font-size: 1rem
+        cursor: pointer
+        transition: all 0.3s ease
+        
+        &:hover
+          transform: translateY(-2px)
+          box-shadow: 0 4px 12px rgba(76, 201, 240, 0.4)
+        
+        &:active
+          transform: translateY(0)
+  
+  // Responsive adjustments
+  @media (max-width: 768px)
+    .content-panel .panel-content
+      width: 90%
+      max-width: 90%
+      
+  .hud
+    top: 10px
+    left: 10px
+    transform: none
+    
+  .controls
+    font-size: 0.8rem
+
+@media (max-width: 480px)
+  .content-panel .panel-content
+    width: 95%
+    padding: 15px
+    
+  .panel-header h2
+    font-size: 1.5rem
+    
+  .hud
+    gap: 5px
+    
+  .speed,
+  .compass,
+  .controls
+    padding: 6px 8px
+    font-size: 0.8rem
