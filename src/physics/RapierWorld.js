@@ -1,66 +1,51 @@
-// RapierWorld.js - Rapier physics world for ship and asteroid collisions
+// RapierWorld.js - Modernized Rapier physics integration for spacecraft & collision detection
 import * as RAPIER from '@dimforge/rapier3d';
 import * as THREE from 'three';
-import { SHIP, ASTEROID_BELT } from '../physics/constants.js';
-
-console.log("RAPIER =", RAPIER);
-console.log("RAPIER.init =", RAPIER.init);
-console.log("RAPIER.World =", RAPIER.World);
 
 export class RapierWorld {
     constructor() {
         this.RAPIER = RAPIER;
-        // Store references to rigid bodies and colliders
         this.bodies = new Map(); // Maps three.js objects to Rapier rigid bodies
         this.colliders = new Map(); // Maps three.js objects to Rapier colliders
         this.world = null;
-
-        // Contact event handling
-        this.contactEventHandler = this.handleContact.bind(this);
     }
 
-    // Initialize the physics world
+    // Initialize the physics world and WebAssembly module
     async init() {
-        // Rapier is already initialized in this version.
-        this.world = new RAPIER.World(
-            new RAPIER.Vector3(0, 0, 0)
-        );
-
-        // We'll disable Rapier's gravity since we handle orbital gravity separately
-        this.world.gravity = new RAPIER.Vector3(0, 0, 0);
-
-        // Set up event listeners for collisions
-        // Note: Rapier uses callbacks or event queues, depending on version
-        // This is a simplified approach - actual implementation may vary based on Rapier version
+        await RAPIER.init();
+        this.world = new RAPIER.World({ x: 0, y: 0, z: 0 });
     }
 
     // Create a rigid body for a three.js object
     createRigidBody(threeObject, options = {}) {
         const { mass = 0, linearDamping = 0.1, angularDamping = 0.1 } = options;
 
-        // Rigid body description
+        // Rigid body description: dynamic if mass > 0, otherwise fixed
         const rigidBodyDesc = mass > 0
             ? RAPIER.RigidBodyDesc.dynamic()
             : RAPIER.RigidBodyDesc.fixed();
 
+        // Position and rotation initialization
         rigidBodyDesc
             .setTranslation(
-                threeObject.position.x,
-                threeObject.position.y,
-                threeObject.position.z
+                Number(threeObject.position.x),
+                Number(threeObject.position.y),
+                Number(threeObject.position.z)
             )
-            .setRotation(
-                threeObject.quaternion
-            )
+            .setRotation({
+                x: Number(threeObject.quaternion.x),
+                y: Number(threeObject.quaternion.y),
+                z: Number(threeObject.quaternion.z),
+                w: Number(threeObject.quaternion.w)
+            })
             .setLinvel(0, 0, 0)
-            .setAngvel(0, 0, 0);
+            .setAngvel(0, 0, 0)
+            .setLinearDamping(linearDamping)
+            .setAngularDamping(angularDamping);
 
         const rigidBody = this.world.createRigidBody(rigidBodyDesc);
 
-        // Apply properties AFTER creation
-        rigidBody.setLinearDamping(linearDamping);
-        rigidBody.setAngularDamping(angularDamping);
-
+        // Set mass properties if applicable
         if (mass > 0) {
             rigidBody.setAdditionalMass(mass, true);
         }
@@ -83,53 +68,45 @@ export class RapierWorld {
         // Get the rigid body associated with this three.js object
         const rigidBody = this.bodies.get(threeObject);
         if (!rigidBody) {
-            console.warn('No rigid body found for three.js object');
+            console.warn('No rigid body found for three.js object during collider creation');
             return null;
         }
 
-        // Default offset/rotation for callers that don't pass them (e.g. spacecraft capsule)
+        // Default offset and rotation if not defined
         const offset = shape.offset || { x: 0, y: 0, z: 0 };
         const rotation = shape.rotation || { x: 0, y: 0, z: 0, w: 1 };
 
-        // Create collider based on shape type
+        // Create collider description depending on shape type
         let colliderDesc;
 
         if (shape.type === 'sphere') {
-            colliderDesc = RAPIER.ColliderDesc.ball(shape.radius)
-                .setTranslation(offset.x, offset.y, offset.z)
-                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+            colliderDesc = RAPIER.ColliderDesc.ball(shape.radius);
         } else if (shape.type === 'cuboid') {
             colliderDesc = RAPIER.ColliderDesc.cuboid(
                 shape.halfSize.x,
                 shape.halfSize.y,
                 shape.halfSize.z
-            )
-                .setTranslation(offset.x, offset.y, offset.z)
-                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+            );
         } else if (shape.type === 'cone') {
-            colliderDesc = RAPIER.ColliderDesc.cone(shape.radius, shape.height)
-                .setTranslation(offset.x, offset.y, offset.z)
-                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+            // Rapier 0.13.0 cone takes (halfHeight, radius)
+            colliderDesc = RAPIER.ColliderDesc.cone(shape.height / 2, shape.radius);
         } else if (shape.type === 'cylinder') {
-            colliderDesc = RAPIER.ColliderDesc.cylinder(shape.radius, shape.halfHeight)
-                .setTranslation(offset.x, offset.y, offset.z)
-                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+            // Rapier 0.13.0 cylinder takes (halfHeight, radius)
+            colliderDesc = RAPIER.ColliderDesc.cylinder(shape.halfHeight, shape.radius);
         } else if (shape.type === 'capsule') {
-            // Rapier capsule takes (halfHeight, radius) where halfHeight is
-            // the half-length of the cylindrical section (excluding the end caps).
+            // Rapier 0.13.0 capsule takes (halfHeight, radius)
             const radius = shape.radius;
             const halfHeight = shape.halfHeight ?? Math.max(0, (shape.height ?? radius * 2) / 2 - radius);
-            colliderDesc = RAPIER.ColliderDesc.capsule(halfHeight, radius)
-                .setTranslation(offset.x, offset.y, offset.z)
-                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+            colliderDesc = RAPIER.ColliderDesc.capsule(halfHeight, radius);
         } else if (shape.type === 'convexHull') {
-            // For complex shapes like spacecraft
-            const points = shape.points.map(p =>
-                new RAPIER.Vector3(p.x, p.y, p.z)
-            );
-            colliderDesc = RAPIER.ColliderDesc.convexHull(points)
-                .setTranslation(offset.x, offset.y, offset.z)
-                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+            // Float32Array containing flat coordinates [x0, y0, z0, x1, y1, z1, ...]
+            let flatCoords;
+            if (shape.points[0] instanceof THREE.Vector3 || (shape.points[0] && typeof shape.points[0].x === 'number')) {
+                flatCoords = new Float32Array(shape.points.flatMap(p => [p.x, p.y, p.z]));
+            } else {
+                flatCoords = new Float32Array(shape.points);
+            }
+            colliderDesc = RAPIER.ColliderDesc.convexHull(flatCoords);
         }
 
         if (!colliderDesc) {
@@ -137,15 +114,19 @@ export class RapierWorld {
             return null;
         }
 
-        // Set material properties
+        // Apply local translation and rotation
         colliderDesc
+            .setTranslation(Number(offset.x), Number(offset.y), Number(offset.z))
+            .setRotation({
+                x: Number(rotation.x),
+                y: Number(rotation.y),
+                z: Number(rotation.z),
+                w: Number(rotation.w)
+            })
             .setDensity(density)
             .setFriction(friction)
-            .setRestitution(restitution);
-
-        if (sensor) {
-            colliderDesc.setSensor(true);
-        }
+            .setRestitution(restitution)
+            .setSensor(sensor);
 
         const collider = this.world.createCollider(colliderDesc, rigidBody);
 
@@ -160,20 +141,18 @@ export class RapierWorld {
         const rigidBody = this.bodies.get(threeObject);
         if (!rigidBody) return;
 
-        rigidBody.setTranslation(
-            threeObject.position.x,
-            threeObject.position.y,
-            threeObject.position.z,
-            true // wake up
-        );
+        rigidBody.setTranslation({
+            x: Number(threeObject.position.x),
+            y: Number(threeObject.position.y),
+            z: Number(threeObject.position.z)
+        }, true);
 
-        rigidBody.setRotation(
-            threeObject.quaternion.x,
-            threeObject.quaternion.y,
-            threeObject.quaternion.z,
-            threeObject.quaternion.w,
-            true // wake up
-        );
+        rigidBody.setRotation({
+            x: Number(threeObject.quaternion.x),
+            y: Number(threeObject.quaternion.y),
+            z: Number(threeObject.quaternion.z),
+            w: Number(threeObject.quaternion.w)
+        }, true);
     }
 
     // Update three.js object's transform from rigid body
@@ -193,8 +172,11 @@ export class RapierWorld {
         const rigidBody = this.bodies.get(threeObject);
         if (!rigidBody) return;
 
-        const point = new RAPIER.Vector3(0, 0, 0); // Apply at center of mass
-        rigidBody.addForce(force, true); // true = wake up
+        rigidBody.addForce({
+            x: Number(force.x),
+            y: Number(force.y),
+            z: Number(force.z)
+        }, true);
     }
 
     // Apply an impulse to a rigid body
@@ -202,8 +184,11 @@ export class RapierWorld {
         const rigidBody = this.bodies.get(threeObject);
         if (!rigidBody) return;
 
-        const point = new RAPIER.Vector3(0, 0, 0); // Apply at center of mass
-        rigidBody.applyImpulse(impulse, true); // true = wake up
+        rigidBody.applyImpulse({
+            x: Number(impulse.x),
+            y: Number(impulse.y),
+            z: Number(impulse.z)
+        }, true);
     }
 
     // Set linear velocity
@@ -211,35 +196,25 @@ export class RapierWorld {
         const rigidBody = this.bodies.get(threeObject);
         if (!rigidBody) return;
 
-        rigidBody.setLinvel(velocity, true); // true = wake up
+        rigidBody.setLinvel({
+            x: Number(velocity.x),
+            y: Number(velocity.y),
+            z: Number(velocity.z)
+        }, true);
     }
 
     // Get linear velocity
     getLinearVelocity(threeObject) {
         const rigidBody = this.bodies.get(threeObject);
-        if (!rigidBody) return new RAPIER.Vector3(0, 0, 0);
+        if (!rigidBody) return new THREE.Vector3(0, 0, 0);
 
-        return rigidBody.linvel();
-    }
-
-    // Handle collision events
-    handleContact(pair) {
-        // Get the colliders involved in the collision
-        const collider1 = pair.collider1();
-        const collider2 = pair.collider2();
-
-        // Get the user data (references to our three.js objects)
-        const userData1 = collider1.userData();
-        const userData2 = collider2.userData();
-
-        // Handle collision logic here
-        // This would typically involve playing sounds, applying damage, etc.
-        // For now, we'll just log it
-        // console.log('Collision detected between:', userData1, userData2);
+        const velocity = rigidBody.linvel();
+        return new THREE.Vector3(velocity.x, velocity.y, velocity.z);
     }
 
     // Step the physics simulation
     step(deltaTime) {
+        if (!this.world) return;
         this.world.step();
 
         // Update all three.js objects from their physics bodies
@@ -248,31 +223,36 @@ export class RapierWorld {
         }
     }
 
-    // Clean up
+    // Clean up all resources
     dispose() {
+        if (!this.world) return;
+
         // Destroy all colliders
         for (const collider of this.colliders.values()) {
-            this.world.removeCollider(collider);
+            try {
+                this.world.removeCollider(collider, false);
+            } catch (e) {
+                // Ignore error if already removed
+            }
         }
         this.colliders.clear();
 
         // Destroy all rigid bodies
         for (const rigidBody of this.bodies.values()) {
-            this.world.removeRigidBody(rigidBody);
+            try {
+                this.world.removeRigidBody(rigidBody);
+            } catch (e) {
+                // Ignore error if already removed
+            }
         }
         this.bodies.clear();
 
-        // Dispose the world
-        // Note: Rapier's World doesn't have a explicit dispose method in some versions
-        // The memory will be reclaimed when the reference is lost
+        this.world = null;
     }
 }
 
 // Helper function to create collision shapes from three.js geometry
 export function createColliderShapeFromGeometry(geometry) {
-    // Simplified shape creation - in practice you might want to use 
-    // more sophisticated methods like convex hull decomposition
-
     if (geometry.isSphereGeometry) {
         return {
             type: 'sphere',
@@ -308,7 +288,6 @@ export function createColliderShapeFromGeometry(geometry) {
             rotation: new THREE.Quaternion(0, 0, 0, 1)
         };
     } else {
-        // For complex geometries, approximate with a sphere or box
         const box = new THREE.Box3().setFromObject(new THREE.Mesh(geometry));
         const size = box.getSize(new THREE.Vector3());
         const radius = Math.max(size.x, size.y, size.z) / 2;

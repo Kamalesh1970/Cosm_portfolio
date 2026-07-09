@@ -2,7 +2,6 @@
 import { SceneManager } from './core/SceneManager.js';
 import { Loader } from './core/Loader.js';
 import { AudioManager } from './audio/AudioManager.js';
-import { DebugPanel } from './debug/DebugPanel.js';
 import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 import { init } from './init.js';
@@ -21,7 +20,6 @@ async function main() {
 
     const loader = new Loader();
     const audioManager = new AudioManager();
-    const debugPanel = null;
     const stats = import.meta.env.DEV ? new Stats() : null;
 
     if (stats) {
@@ -44,7 +42,7 @@ async function main() {
     });
 
     // Start the game
-    await init({ sceneManager, loader, audioManager, debugPanel, stats });
+    await init({ sceneManager, loader, audioManager, debugPanel: null, stats });
 
     // Start the game loop
     sceneManager.start();

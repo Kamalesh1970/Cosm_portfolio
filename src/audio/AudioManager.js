@@ -54,8 +54,11 @@ export class AudioManager {
             this.sounds[key].unload();
         }
         
+        // Base64 encoded 1-second silent MP3 file to prevent network 404 console errors
+        const silentMp3 = 'data:audio/mp3;base64,SUQzBAAAAAAAI1RTU0UAAAAPAAADTGF2ZjU3LjU2LjEwMAAAAAAAAAAAAAAA//uQZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAaW5mbwAAAA8AAAACAAACcQAFBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwcHBwU=';
+        
         const soundOptions = {
-            src: [url],
+            src: [silentMp3],
             loop: false,
             volume: 1.0,
             ...options

@@ -4,6 +4,7 @@ import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer
 import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
 import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 import { ShaderPass } from 'three/examples/jsm/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/examples/jsm/postprocessing/OutputPass.js';
 import { Clock } from './Clock.js';
 
 /**
@@ -47,7 +48,7 @@ function showWebGLFallback(container) {
     // Hide any loading screens
     const loadingEl = document.getElementById('loading-screen');
     if (loadingEl) loadingEl.style.display = 'none';
-    
+
     document.body.appendChild(msg);
 }
 
@@ -61,11 +62,12 @@ export class SceneManager {
 
         // Three.js setup
         this.scene = new THREE.Scene();
+
         this.camera = new THREE.PerspectiveCamera(
             75,
             window.innerWidth / window.innerHeight,
             0.1,
-            50000  // Large far plane for distant planets
+            50000
         );
 
         // ── Renderer: explicit WebGLRenderer, high-performance ──
@@ -76,34 +78,37 @@ export class SceneManager {
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.renderer.setClearColor(0x000000, 1);
-        
+        this.renderer.outputColorSpace = THREE.SRGBColorSpace;
+        this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        this.renderer.toneMappingExposure = 1.2;
+
         // ── Log WebGL context version once (for verification) ────
         const gl = this.renderer.getContext();
         if (gl) {
             const version = gl.getParameter(gl.VERSION);
             console.log(`%c🖥 WebGL context: ${version}`, 'color:#4cc9f0;font-weight:bold');
         }
-        
+
         // Post-processing
         this.composer = new EffectComposer(this.renderer);
         this.renderPass = new RenderPass(this.scene, this.camera);
         this.composer.addPass(this.renderPass);
-        
+
         // Bloom effect for sun and emissive objects
         const bloomPass = new UnrealBloomPass(
             new THREE.Vector2(window.innerWidth, window.innerHeight),
             1.5,  // strength
             0.4,  // radius
-            0.85  // threshold
+            0.3   // threshold (lowered from 0.85 so Sun glow and planet illumination are visible)
         );
         this.composer.addPass(bloomPass);
-        
+
         // Vignette shader
         const vignetteShader = {
             uniforms: {
                 "tDiffuse": { value: null },
                 "offset": { value: 1.0 },
-                "darkness": { value: 1.8 }
+                "darkness": { value: 1.0 }  // softened from 1.8 to prevent over-darkening
             },
             vertexShader: `varying vec2 vUv;
                 void main() {
@@ -124,74 +129,69 @@ export class SceneManager {
                 }`
         };
         this.vignettePass = new ShaderPass(vignetteShader);
-        this.vignettePass.renderToScreen = true;
         this.composer.addPass(this.vignettePass);
-        
+
+        this.outputPass = new OutputPass();
+        this.composer.addPass(this.outputPass);
+
         // Camera setup
-        this.camera.position.set(0, 10, 20);
-        
+        this.camera.position.set(0, 500, 3000);
+        this.camera.lookAt(0, 0, 0);
+
         // Lighting
-        this.ambientLight = new THREE.AmbientLight(0x222222, 0.3);
+        this.ambientLight = new THREE.AmbientLight(0x404050, 0.5);
         this.scene.add(this.ambientLight);
-        
+
         // Resize handling
         window.addEventListener('resize', () => this.onWindowResize());
-        
+
         // Game loop
         this.clock = new Clock();
         this.isRunning = false;
-        
+
         // Append renderer to DOM
         document.getElementById('app').appendChild(this.renderer.domElement);
     }
-    
+
     onWindowResize() {
         this.camera.aspect = window.innerWidth / window.innerHeight;
         this.camera.updateProjectionMatrix();
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.composer.setSize(window.innerWidth, window.innerHeight);
     }
-    
+
     start() {
         if (this.isRunning) return;
         this.isRunning = true;
         this.clock.start();
         this.animate();
     }
-    
+
     stop() {
         this.isRunning = false;
         this.clock.stop();
     }
-    
+
     animate() {
-        if (!this.isRunning) return;
-        
-        const delta = this.clock.getDelta();
-        
-        // Update scene (physics, animations, etc.) would go here
-        // This will be called from the main game loop
-        
-        // Render
-        this.composer.render();
-        
-        // Request next frame
-        requestAnimationFrame(() => this.animate());
+        // NOTE: The main game loop in init.js handles all updates AND calls
+        // sceneManager.composer.render().  This method is intentionally a no-op
+        // so we don't spawn a second requestAnimationFrame loop that would
+        // overwrite those frames with stale/un-updated state.
     }
-    
+
     // Methods for other systems to interact with the scene
     add(object) {
         this.scene.add(object);
     }
-    
+
     remove(object) {
         this.scene.remove(object);
     }
-    
+
     getCamera() {
         return this.camera;
     }
-    
+
     getScene() {
         return this.scene;
     }

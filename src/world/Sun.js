@@ -45,8 +45,8 @@ export class Sun {
         this.light.position.set(0, 0, 0);
         this.scene.add(this.light);
         
-        // Also add an ambient light to prevent completely black shadows
-        this.ambientLight = new THREE.AmbientLight(0x000000, 0.2);
+        // Dim warm ambient so shadowed faces aren't pure black
+        this.ambientLight = new THREE.AmbientLight(0x332211, 0.4);
         this.scene.add(this.ambientLight);
     }
     

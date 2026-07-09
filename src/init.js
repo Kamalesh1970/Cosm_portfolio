@@ -7,7 +7,6 @@ import { Clock } from './core/Clock.js';
 import { GravityEngine } from './physics/GravityEngine.js';
 import { RapierWorld } from './physics/RapierWorld.js';
 import { Spacecraft } from './ship/Spacecraft.js';
-import { FlightController } from './ship/FlightController.js';
 import { ChaseCamera } from './ship/ChaseCamera.js';
 import { Sun } from './world/Sun.js';
 import { Planet } from './world/Planet.js';
@@ -22,8 +21,6 @@ import { HUD } from './ui/HUD.js';
 import { ContentPanel } from './ui/ContentPanel.js';
 import { LoadingScreen } from './ui/LoadingScreen.js';
 import { AudioManager } from './audio/AudioManager.js';
-import { DebugPanel } from './debug/DebugPanel.js';
-import Stats from 'three/examples/jsm/libs/stats.module.js';
 
 // Exploration & Debug imports
 import { ExplorationManager } from './core/ExplorationManager.js';
@@ -314,10 +311,17 @@ export async function init({ sceneManager, loader, audioManager, debugPanel, sta
         }
 
         spacecraft.update(deltaTime, inputManager, inputManager.keys);
-        chaseCamera.update(deltaTime);
-        cameraRig.update(deltaTime);
-        proximityDetector.update(deltaTime);
-        hud.update(spacecraft, proximityDetector.getNearestPlanet());
+        
+        // Prevent other camera systems from overriding camera during cinematic sequences
+        if (arrivalSequence && arrivalSequence.isActive()) {
+            arrivalSequence.update(deltaTime);
+        } else {
+            if (chaseCamera) chaseCamera.update(deltaTime);
+            if (cameraRig) cameraRig.update(deltaTime);
+        }
+        
+        if (proximityDetector) proximityDetector.update(deltaTime);
+        if (hud) hud.update(spacecraft, proximityDetector.getNearestPlanet());
 
         // Update secrets exploration system
         if (explorationManager) {
@@ -354,7 +358,8 @@ export async function init({ sceneManager, loader, audioManager, debugPanel, sta
     loadingScreen.hide();
 
     console.log('Game loop started successfully.');
-    console.groupEnd();
+
+    console.groupEnd(); // End Stage 6
 
     console.groupEnd(); // End Main Initialization Group
 
