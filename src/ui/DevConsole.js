@@ -146,10 +146,10 @@ export class DevConsole {
                     const currentG = this.rapierWorld.world.gravity;
                     const isZero = currentG.x === 0 && currentG.y === 0 && currentG.z === 0;
                     if (isZero && arg !== 'off') {
-                        this.rapierWorld.world.gravity = new this.rapierWorld.RAPIER.Vector3(0, -9.81, 0);
+                        this.rapierWorld.world.gravity = { x: 0, y: -9.81, z: 0 };
                         this.log("Gravity ENABLED (0, -9.81, 0)");
                     } else {
-                        this.rapierWorld.world.gravity = new this.rapierWorld.RAPIER.Vector3(0, 0, 0);
+                        this.rapierWorld.world.gravity = { x: 0, y: 0, z: 0 };
                         this.log("Gravity DISABLED (0, 0, 0)");
                     }
                 } else {

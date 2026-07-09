@@ -50,21 +50,20 @@ export class RapierWorld {
                 threeObject.position.z
             )
             .setRotation(
-                threeObject.quaternion.x,
-                threeObject.quaternion.y,
-                threeObject.quaternion.z,
-                threeObject.quaternion.w
+                threeObject.quaternion
             )
             .setLinvel(0, 0, 0)
-            .setAngvel(0, 0, 0)
-            .setLinvelDamping(linearDamping)
-            .setAngvelDamping(angularDamping);
-
-        if (mass > 0) {
-            rigidBodyDesc.setMass(mass);
-        }
+            .setAngvel(0, 0, 0);
 
         const rigidBody = this.world.createRigidBody(rigidBodyDesc);
+
+        // Apply properties AFTER creation
+        rigidBody.setLinearDamping(linearDamping);
+        rigidBody.setAngularDamping(angularDamping);
+
+        if (mass > 0) {
+            rigidBody.setAdditionalMass(mass, true);
+        }
 
         // Store reference
         this.bodies.set(threeObject, rigidBody);
@@ -88,37 +87,54 @@ export class RapierWorld {
             return null;
         }
 
+        // Default offset/rotation for callers that don't pass them (e.g. spacecraft capsule)
+        const offset = shape.offset || { x: 0, y: 0, z: 0 };
+        const rotation = shape.rotation || { x: 0, y: 0, z: 0, w: 1 };
+
         // Create collider based on shape type
         let colliderDesc;
 
         if (shape.type === 'sphere') {
             colliderDesc = RAPIER.ColliderDesc.ball(shape.radius)
-                .setTranslation(shape.offset.x, shape.offset.y, shape.offset.z)
-                .setRotation(shape.rotation.x, shape.rotation.y, shape.rotation.z, shape.rotation.w);
+                .setTranslation(offset.x, offset.y, offset.z)
+                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
         } else if (shape.type === 'cuboid') {
             colliderDesc = RAPIER.ColliderDesc.cuboid(
                 shape.halfSize.x,
                 shape.halfSize.y,
                 shape.halfSize.z
             )
-                .setTranslation(shape.offset.x, shape.offset.y, shape.offset.z)
-                .setRotation(shape.rotation.x, shape.rotation.y, shape.rotation.z, shape.rotation.w);
+                .setTranslation(offset.x, offset.y, offset.z)
+                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
         } else if (shape.type === 'cone') {
             colliderDesc = RAPIER.ColliderDesc.cone(shape.radius, shape.height)
-                .setTranslation(shape.offset.x, shape.offset.y, shape.offset.z)
-                .setRotation(shape.rotation.x, shape.rotation.y, shape.rotation.z, shape.rotation.w);
+                .setTranslation(offset.x, offset.y, offset.z)
+                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
         } else if (shape.type === 'cylinder') {
             colliderDesc = RAPIER.ColliderDesc.cylinder(shape.radius, shape.halfHeight)
-                .setTranslation(shape.offset.x, shape.offset.y, shape.offset.z)
-                .setRotation(shape.rotation.x, shape.rotation.y, shape.rotation.z, shape.rotation.w);
+                .setTranslation(offset.x, offset.y, offset.z)
+                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+        } else if (shape.type === 'capsule') {
+            // Rapier capsule takes (halfHeight, radius) where halfHeight is
+            // the half-length of the cylindrical section (excluding the end caps).
+            const radius = shape.radius;
+            const halfHeight = shape.halfHeight ?? Math.max(0, (shape.height ?? radius * 2) / 2 - radius);
+            colliderDesc = RAPIER.ColliderDesc.capsule(halfHeight, radius)
+                .setTranslation(offset.x, offset.y, offset.z)
+                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
         } else if (shape.type === 'convexHull') {
             // For complex shapes like spacecraft
             const points = shape.points.map(p =>
                 new RAPIER.Vector3(p.x, p.y, p.z)
             );
             colliderDesc = RAPIER.ColliderDesc.convexHull(points)
-                .setTranslation(shape.offset.x, shape.offset.y, shape.offset.z)
-                .setRotation(shape.rotation.x, shape.rotation.y, shape.rotation.z, shape.rotation.w);
+                .setTranslation(offset.x, offset.y, offset.z)
+                .setRotation(rotation.x, rotation.y, rotation.z, rotation.w);
+        }
+
+        if (!colliderDesc) {
+            console.warn(`RapierWorld.createCollider: unsupported shape type "${shape.type}"`);
+            return null;
         }
 
         // Set material properties

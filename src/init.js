@@ -365,18 +365,3 @@ export async function init({ sceneManager, loader, audioManager, debugPanel, sta
         debugPanel, stats, explorationManager, devConsole
     };
 }
-
-// Start the application when DOM is loaded
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => {
-        // Import and initialize main components
-        import('./main.js').then(({ main }) => {
-            main();
-        });
-    });
-} else {
-    // Already loaded
-    import('./main.js').then(({ main }) => {
-        main();
-    });
-}
