@@ -10,10 +10,14 @@ export class RapierWorld {
         this.world = null;
     }
 
-    // Initialize the physics world and WebAssembly module
+    // Initialize the physics world. The WASM module is loaded automatically
+    // via top-level await when this module is imported (see vite.config.js
+    // wasm + top-level-await plugins), so no RAPIER.init() call is required.
     async init() {
-        await RAPIER.init();
-        this.world = new RAPIER.World({ x: 0, y: 0, z: 0 });
+        if (!this.world) {
+            this.world = new RAPIER.World({ x: 0, y: 0, z: 0 });
+        }
+        return this;
     }
 
     // Create a rigid body for a three.js object
@@ -237,13 +241,9 @@ export class RapierWorld {
         }
         this.colliders.clear();
 
-        // Destroy all rigid bodies
-        for (const rigidBody of this.bodies.values()) {
-            try {
-                this.world.removeRigidBody(rigidBody);
-            } catch (e) {
-                // Ignore error if already removed
-            }
+        this.world = null;
+    }
+}
         }
         this.bodies.clear();
 

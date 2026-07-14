@@ -18,6 +18,12 @@ export class CameraRig {
         this.targetPosition = this.camera.position.clone();
         this.targetQuaternion = this.camera.quaternion.clone();
 
+        // Reusable variables for matrix math to prevent frame allocations/GC spikes
+        this._tempVector = new THREE.Vector3();
+        this._tempVector2 = new THREE.Vector3();
+        this._tempVectorUp = new THREE.Vector3(0, 1, 0);
+        this._tempMatrix = new THREE.Matrix4();
+
         // Bind methods
         this.update = this.update.bind(this);
     }
@@ -83,31 +89,19 @@ export class CameraRig {
 
         // Calculate desired camera position
         // Convert offset from local to world space
-        const offsetWorld = new THREE.Vector3(
-            this.offset.x,
-            this.offset.y,
-            this.offset.z
-        ).applyQuaternion(targetQuat);
-
-        this.targetPosition.copy(targetPos).add(offsetWorld);
+        this._tempVector.copy(this.offset).applyQuaternion(targetQuat);
+        this.targetPosition.copy(targetPos).add(this._tempVector);
 
         // Calculate where to look at
-        const lookAtPoint = new THREE.Vector3(
-            this.targetOffset.x,
-            this.targetOffset.y,
-            this.targetOffset.z
-        ).applyQuaternion(targetQuat).add(targetPos);
+        this._tempVector2.copy(this.targetOffset).applyQuaternion(targetQuat).add(targetPos);
 
-        // Point camera at lookAtPoint
-        this.targetQuaternion.copy(
-            new THREE.Quaternion().setFromRotationMatrix(
-                new THREE.Matrix4().lookAt(
-                    this.targetPosition, // camera position
-                    lookAtPoint,         // look at point
-                    new THREE.Vector3(0, 1, 0) // up vector
-                )
-            )
+        // Point camera at lookAtPoint using reusable tempMatrix
+        this._tempMatrix.lookAt(
+            this.targetPosition, // camera position
+            this._tempVector2,    // look at point
+            this._tempVectorUp    // up vector
         );
+        this.targetQuaternion.setFromRotationMatrix(this._tempMatrix);
     }
 
     updateOrbitalMode(deltaTime) {
@@ -129,16 +123,13 @@ export class CameraRig {
 
         this.targetPosition.set(x, y, z);
 
-        // Look at target
-        this.targetQuaternion.copy(
-            new THREE.Quaternion().setFromRotationMatrix(
-                new THREE.Matrix4().lookAt(
-                    this.targetPosition, // camera position
-                    targetPos,           // look at point
-                    new THREE.Vector3(0, 1, 0) // up vector
-                )
-            )
+        // Look at target using reusable tempMatrix
+        this._tempMatrix.lookAt(
+            this.targetPosition, // camera position
+            targetPos,           // look at point
+            this._tempVectorUp    // up vector
         );
+        this.targetQuaternion.setFromRotationMatrix(this._tempMatrix);
     }
 
     smoothTransition(deltaTime) {

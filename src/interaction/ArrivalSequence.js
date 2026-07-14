@@ -50,15 +50,17 @@ export class ArrivalSequence {
         // Create a CatmullRomCurve3 for smooth interpolation
         const curve = new THREE.CatmullRomCurve3(points, true); // true = closed loop
         
-        // Animate camera along the curve
-        const duration = this.options.duration * 1000; // Convert to milliseconds
+        // Animate camera along the curve using a proxy object
+        const proxy = { progress: 0 };
+        this.originalFov = this.camera.fov; // Store before any tweens touch it
         
-        gsap.to({}, {
-            duration: duration / 1000, // GSAP uses seconds
+        gsap.to(proxy, {
+            duration: this.options.duration,
             progress: 1,
             ease: this.options.easing,
-            onUpdate: (params) => {
-                const point = curve.getPointAt(params.progress);
+            onUpdate: () => {
+                const t = Math.max(0, Math.min(1, proxy.progress));
+                const point = curve.getPointAt(t);
                 this.camera.position.copy(point);
                 
                 // Always look at the planet
@@ -70,13 +72,15 @@ export class ArrivalSequence {
         });
         
         // Also tween the camera's field of view for a dramatic effect
-        const originalFov = this.camera.fov;
         gsap.to(this.camera, {
-            fov: originalFov * 0.8, // Slightly zoom in
+            fov: this.originalFov * 0.8, // Slightly zoom in
             duration: this.options.duration * 0.7,
             ease: 'power2.inOut',
             yoyo: true,
-            repeat: 1
+            repeat: 1,
+            onUpdate: () => {
+                this.camera.updateProjectionMatrix();
+            }
         });
     }
     
@@ -128,9 +132,12 @@ export class ArrivalSequence {
         
         // Reset FOV
         gsap.to(this.camera, {
-            fov: this.camera.fov, // Return to original FOV
+            fov: this.originalFov !== undefined ? this.originalFov : 75, // Return to original FOV
             duration: 1.0,
-            ease: 'power2.out'
+            ease: 'power2.out',
+            onUpdate: () => {
+                this.camera.updateProjectionMatrix();
+            }
         });
     }
     
@@ -147,6 +154,10 @@ export class ArrivalSequence {
         // Snap back to original state
         this.camera.position.copy(this.originalPosition);
         this.camera.quaternion.copy(this.originalQuaternion);
+        if (this.originalFov !== undefined) {
+            this.camera.fov = this.originalFov;
+            this.camera.updateProjectionMatrix();
+        }
     }
     
     update(deltaTime) {

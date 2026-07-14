@@ -1,7 +1,5 @@
 // init.js - Main initialization function that sets up all systems
 import * as THREE from 'three';
-import { SceneManager } from './core/SceneManager.js';
-import { Loader } from './core/Loader.js';
 import { InputManager } from './core/InputManager.js';
 import { Clock } from './core/Clock.js';
 import { GravityEngine } from './physics/GravityEngine.js';
@@ -159,7 +157,7 @@ export async function init({ sceneManager, loader, audioManager, debugPanel, sta
     let spacecraft, chaseCamera, cameraRig, proximityDetector, arrivalSequence, hud, contentPanel;
     let explorationManager, devConsole;
     try {
-        spacecraft = new Spacecraft(sceneManager.getScene());
+        spacecraft = new Spacecraft(sceneManager.getScene(), { rapierWorld });
         spacecraft.mesh.position.set(0, 0, -100);
 
         const shipBody = rapierWorld.createRigidBody(spacecraft.mesh, {
@@ -282,19 +280,24 @@ export async function init({ sceneManager, loader, audioManager, debugPanel, sta
     // STAGE 6: GAME LOOP
     // ==========================================
     console.groupCollapsed('Stage 6: Game Loop');
-    let lastTime = 0, accumulator = 0;
+    let lastTime = -1, accumulator = 0;
     const fixedTimeStep = 1 / 60;
+    const maxDelta = 0.1; // Cap delta at 100ms to prevent physics explosions
+    const maxAccumulator = fixedTimeStep * 5; // Prevent spiral of death
 
     function animate(timestamp) {
         if (!sceneManager.isRunning) return;
 
-        const deltaTime = (timestamp - lastTime) / 1000;
+        // On the very first frame, lastTime is unset — seed it to avoid a huge spike
+        if (lastTime < 0) lastTime = timestamp;
+        const rawDelta = (timestamp - lastTime) / 1000;
+        const deltaTime = Math.min(rawDelta, maxDelta); // Clamp to prevent explosion
         lastTime = timestamp;
 
         inputManager.update();
         if (stats) stats.begin();
 
-        accumulator += deltaTime;
+        accumulator = Math.min(accumulator + deltaTime, maxAccumulator);
         while (accumulator >= fixedTimeStep) {
             gravityEngine.update(fixedTimeStep);
             rapierWorld.step(fixedTimeStep);

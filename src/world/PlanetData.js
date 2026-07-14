@@ -4,7 +4,7 @@ export const PLANET_DATA = {
         name: 'Sol',
         sectionTitle: 'Hero / Introduction',
         contentHTML: `
-            <h1>Alex Rivera</h1>
+            <h1>Kamalesh</h1>
             <h2>Full-Stack Developer & Space Enthusiast</h2>
             <p>Welcome to my interactive portfolio - a journey through the solar system where each planet represents a different facet of my professional journey and personal interests.</p>
             <p>Explore the planets to learn about my skills, projects, experience, and more. Each celestial body offers a unique perspective on what I bring to the table as a developer and creative technologist.</p>
@@ -26,7 +26,7 @@ export const PLANET_DATA = {
         sectionTitle: 'Quick Facts / TL;DR',
         contentHTML: `
             <h2>Quick Facts</h2>
-            <p>I'm Alex Rivera, a full-stack developer passionate about creating immersive web experiences and pushing the boundaries of what's possible with web technologies.</p>
+            <p>I'm Kamalesh, a full-stack developer passionate about creating immersive web experiences and pushing the boundaries of what's possible with web technologies.</p>
             <ul>
                 <li><strong>Location:</strong> San Francisco, CA</li>
                 <li><strong>Experience:</strong> 5+ years in web development</li>

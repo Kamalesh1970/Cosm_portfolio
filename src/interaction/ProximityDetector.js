@@ -69,7 +69,6 @@ export class ProximityDetector {
         // If we move far enough away from the last visited planet, reset it
         if (this.lastVisitedPlanet && minDistance > this.options.arrivalDistance * 2.0) {
             this.lastVisitedPlanet = null;
-            console.log("Cleared last visited planet proximity constraint.");
         }
         
         // Check if we're close enough to trigger arrival
@@ -81,7 +80,6 @@ export class ProximityDetector {
                 this.lastVisitedPlanet = closestPlanet;
                 this.setDetectionEnabled(false); // Stop checking while sequence plays
                 
-                console.log(`Triggering spacecraft-arrival event for planet: ${closestPlanet.name || closestPlanet.key}`);
                 const arrivalEvent = new CustomEvent('spacecraft-arrival', {
                     detail: {
                         planet: closestPlanet,

@@ -1,4 +1,7 @@
 // DevConsole.js - Hidden Developer Console overlay triggered via key sequence
+import * as THREE from 'three';
+import { PLANET_DATA } from '../world/PlanetData.js';
+
 export class DevConsole {
     constructor(sceneManager, explorationManager, rapierWorld, asteroidBelt) {
         this.sceneManager = sceneManager;

@@ -103,32 +103,41 @@ export class Spacecraft {
     }
     
     update(deltaTime, input, keysPressed) {
+        // Handle Brake
+        if (keysPressed['Space']) {
+            this.drag = 0.95; // Stronger drag for braking
+        } else {
+            this.drag = 0.985; // Normal drag
+        }
+        
         // Apply drag to velocity
         this.velocity.multiplyScalar(this.drag);
         
-        // Apply thrust based on input
+        // Handle Boost
+        const thrustMultiplier = keysPressed['ShiftLeft'] || keysPressed['ShiftRight'] ? 3.0 : 1.0;
+        
+        // Apply thrust based on input (W/S)
         const forward = new THREE.Vector3(0, 0, -1).applyQuaternion(this.mesh.quaternion);
         
-        if (keysPressed['KeyW'] || keysPressed['ArrowUp']) {
+        if (keysPressed['KeyW']) {
             // Forward thrust
-            this.velocity.addScaledVector(forward, this.thrustForce * deltaTime / this.mass);
+            this.velocity.addScaledVector(forward, this.thrustForce * thrustMultiplier * deltaTime / this.mass);
         }
-        
-        if (keysPressed['KeyS'] || keysPressed['ArrowDown']) {
+        if (keysPressed['KeyS']) {
             // Backward thrust
             this.velocity.addScaledVector(forward, -this.thrustForce * 0.5 * deltaTime / this.mass);
         }
         
         // Apply rotation based on input
-        // Pitch (up/down)
-        if (keysPressed['KeyW'] || keysPressed['ArrowUp']) {
+        // Pitch (up/down) - Arrow keys only so it doesn't conflict with W/S thrust
+        if (keysPressed['ArrowUp']) {
             this.mesh.rotateX(-0.05 * deltaTime * 60); // Pitch down
         }
-        if (keysPressed['KeyS'] || keysPressed['ArrowDown']) {
+        if (keysPressed['ArrowDown']) {
             this.mesh.rotateX(0.05 * deltaTime * 60); // Pitch up
         }
         
-        // Yaw (left/right)
+        // Yaw (left/right) - A/D or Arrow Left/Right
         if (keysPressed['KeyA'] || keysPressed['ArrowLeft']) {
             this.mesh.rotateY(0.05 * deltaTime * 60); // Yaw left
         }
@@ -146,6 +155,12 @@ export class Spacecraft {
         
         // Update position
         this.mesh.position.addScaledVector(this.velocity, deltaTime);
+        
+        // Sync to physics engine if available
+        if (this.options.rapierWorld) {
+            this.options.rapierWorld.setLinearVelocity(this.mesh, this.velocity);
+            this.options.rapierWorld.updateRigidBodyFromThree(this.mesh);
+        }
         
         // Update visual effects (engine glow, etc.)
         this.updateVisualEffects(deltaTime, keysPressed);

@@ -61,7 +61,6 @@ export class ExplorationManager {
     speakAI(text, priority = false) {
         // Dispatch HUD event to render subtitles
         window.dispatchEvent(new CustomEvent('ai-assistant-message', { detail: { text } }));
-        console.log(`[AI Assistant]: ${text}`);
 
         if (this.speechEnabled) {
             // Cancel current speaking if priority
